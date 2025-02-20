@@ -1,0 +1,22 @@
+{
+  "name": "vpa-poc",
+  "version": "1.0.0",
+  "description": "a small app that runs on NodeJS\r purpose: to send and recieve SMS messages utilizing a SMS gateway type service",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/adowdy/vpa-poc.git"
+  },
+  "author": "Aaron Dowdy",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/adowdy/vpa-poc/issues"
+  },
+  "homepage": "https://github.com/adowdy/vpa-poc#readme",
+  "dependencies": {
+    "aws-sdk": "^2.1692.0"
+  }
+}
