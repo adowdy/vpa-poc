@@ -1,5 +1,6 @@
 // app-email.js
 const AWS = require('aws-sdk');
+//const { SESClient, SendEmailCommand } = require("@aws-sdk/client-ses");
 
 // Configure AWS SDK (replace with your region)
 AWS.config.update({region: 'us-east-2'}); // e.g., 'us-west-2'
@@ -7,6 +8,24 @@ AWS.config.update({region: 'us-east-2'}); // e.g., 'us-west-2'
 // Create SNS and SQS service objects
 const sns = new AWS.SNS();
 const sqs = new AWS.SQS();
+const ses = new AWS.SES();
+
+const params = {
+  Source: "sender@example.com", // This must be a verified email in SES
+  Destination: {
+    ToAddresses: ["recipient@example.com"],
+  },
+  Message: {
+    Subject: {
+      Data: "Test Email via AWS SES with Default Credentials",
+    },
+    Body: {
+      Text: {
+        Data: "This email was sent using AWS SES, relying on the default credential provider chain!",
+      },
+    },
+  },
+};
 
 // Your SQS Queue URL (replace with your actual SQS Queue URL for receiving emails)
 const sqsQueueUrl = 'https://sqs.us-east-2.amazonaws.com/664418981402/inbound-sms-queue'; // e.g., 'https://sqs.us-west-2.amazonaws.com/your-account-id/inbound-email-queue'
@@ -50,7 +69,7 @@ async function receiveEmailFromSQS() {
                 console.log('Email Content:', receivedEmailContent);
 
                 // Send Email Reply
-                await sendEmailReply(senderEmailAddress, 'Confirmed, got your email message!');
+                await sendEmailReply(senderEmailAddress, 'Confirmed, got your email message!', 'confirmed, message body');
 
                 // Delete message from queue
                 await sqs.deleteMessage({
@@ -66,38 +85,31 @@ async function receiveEmailFromSQS() {
     }
 }
 
-async function sendEmailReply(recipientEmail, messageBody) {
+async function sendEmailReply(toEmail, subject, body) {
     const params = {
-        Message: messageBody,
-        Subject: 'Re: Your Email Confirmation',
-        TopicArn: 'arn:aws:sns:us-east-2:664418981402:outgoing-customer-email' // Replace with your SNS Topic ARN for email sending
-        // OR, to send directly to email address (simpler for testing, but less scalable for many recipients in real use):
-        //  TargetArn: `arn:aws:sns:your-aws-region:your-aws-account-id:endpoint/EMAIL/MyApplication/some-unique-id`, // Example - you'd need to create an EMAIL endpoint subscription in SNS first if using TargetArn this way, or just use email address directly as below for simpler sending
-        //  Endpoint: recipientEmail, // Send directly to email address - simpler for testing
-        //  Protocol: 'email'
-
-         // Simpler approach for direct email sending (no topic needed for just replies, but less scalable for broader notifications)
-        //  Message: messageBody,
-        //  Subject: 'Re: Your Email Confirmation',
-        //  TargetArn: `arn:aws:sns:your-aws-region:664418981402:endpoint/EMAIL/${recipientEmail.replace(/[@.]/g, '-')}/some-unique-id` , // Construct a TargetArn -  **Important**: replace '/' and '.' in email with '-' to make it ARN compatible.  This is just an example, ARN format needs to be valid.  Direct email sending might be simpler for testing but less scalable for mass notifications compared to using topics.
-        //  Endpoint: recipientEmail,
-        //  Protocol: 'email'
-
-
-         // **Even Simpler Direct Email Sending (using PhoneNumber parameter - actually works for email too!):**
-        // Message: messageBody,
-        // Subject: 'Re: Your Email Confirmation',
-        // PhoneNumber: recipientEmail //  PhoneNumber parameter in SNS can actually be used for email addresses too for simple sending!  This is the easiest for testing.
-
-    };
-
-
-    try {
-        const publishResponse = await sns.publish(params).promise();
-        console.log('Email Reply sent to:', recipientEmail, 'MessageId:', publishResponse.MessageId);
-    } catch (err) {
-        console.error('Error sending email reply:', err);
-    }
+        Source: "dowdy.aaron@gmail.com", // This must be a verified email in SES
+        Destination: {
+          ToAddresses: [toEmail],
+        },
+        Message: {
+          Subject: {
+            Data: "Got your request",
+          },
+          Body: {
+            Text: {
+              Data: "I got your message and am working on it!",
+            },
+          },
+        },
+      };
+    
+      try {
+        // Use the promise interface of the sendEmail method
+        const data = await ses.sendEmail(params).promise();
+        console.log("Email sent successfully:", data);
+      } catch (error) {
+        console.error("Error sending email:", error);
+      }
 }
 
 
